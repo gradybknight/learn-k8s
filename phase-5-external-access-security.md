@@ -164,7 +164,19 @@ In AWS Console, create an IAM user with this policy:
 #### Create Dynamic DNS Update Script for Route53
 
 ```bash
-# Run these commands on your development machine or home router where AWS CLI is configured
+# SSH to k8s-control node (better than dev machine since it's always on)
+ssh k8sadmin@k8s-control
+
+# Install AWS CLI on k8s-control node
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+rm -rf awscliv2.zip aws/
+
+# Configure AWS credentials
+aws configure
+# Enter your Access Key ID, Secret Access Key, region (e.g., us-east-1)
+
 # Get your hosted zone ID
 aws route53 list-hosted-zones --query "HostedZones[?Name=='yourdomain.com.'].Id" --output text
 
@@ -238,8 +250,8 @@ chmod +x update-route53.sh
 # Test the script
 ./update-route53.sh
 
-# Set up cron job to run every 5 minutes
-echo "*/5 * * * * /home/$(whoami)/update-route53.sh >> /var/log/route53-update.log 2>&1" | crontab -
+# Set up cron job to run every 5 minutes on k8s-control node
+echo "*/5 * * * * /home/k8sadmin/update-route53.sh >> /var/log/route53-update.log 2>&1" | crontab -
 ```
 
 #### Create Wildcard DNS Record (Optional but Recommended)
