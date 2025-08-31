@@ -1,6 +1,7 @@
 # Phase 1: Infrastructure Foundation
 
 ## Learning Objectives
+
 - Install Ubuntu Server on all three machines
 - Configure static networking for Kubernetes
 - Set up secure SSH access
@@ -8,6 +9,7 @@
 - Prepare machines for Kubernetes installation
 
 ## Prerequisites
+
 - 3 mini PCs (1 Lenovo, 2 Beelink)
 - Network switch and router
 - USB drives for installation media
@@ -15,46 +17,59 @@
 
 ## Step 1: Choose and Download Ubuntu Server
 
-**Why Ubuntu Server 22.04 LTS?**
+**Why Ubuntu Server 24.04 LTS?**
+
 - Long-term support (5 years)
 - Excellent Kubernetes documentation and community support
 - Stable package repositories
 - Well-tested container runtime compatibility
+- Latest kernel and system improvements
 
-1. Download Ubuntu Server 22.04 LTS ISO:
+1. Download Ubuntu Server 24.04.3 LTS ISO:
+
    ```bash
-   # On your main computer
-   wget https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso
+   # On Linux/WSL
+   wget https://releases.ubuntu.com/24.04/ubuntu-24.04.3-live-server-amd64.iso
+
+   # On macOS (if wget not available)
+   curl -O https://releases.ubuntu.com/24.04/ubuntu-24.04.3-live-server-amd64.iso
    ```
 
 2. Verify the download (optional but recommended):
+
    ```bash
-   # Download and verify checksums
-   wget https://releases.ubuntu.com/22.04/SHA256SUMS
-   sha256sum -c SHA256SUMS 2>&1 | grep ubuntu-22.04.3-live-server-amd64.iso
+   # On Linux/WSL
+   wget https://releases.ubuntu.com/24.04/SHA256SUMS
+   sha256sum -c SHA256SUMS 2>&1 | grep ubuntu-24.04.3-live-server-amd64.iso
+
+   # On macOS
+   curl -O https://releases.ubuntu.com/24.04/SHA256SUMS
+   shasum -a 256 -c SHA256SUMS 2>&1 | grep ubuntu-24.04.3-live-server-amd64.iso
    ```
 
 ## Step 2: Create Installation Media
 
 1. **On macOS:**
+
    ```bash
    # Find your USB device
    diskutil list
-   
+
    # Unmount the USB (replace diskX with your USB)
    diskutil unmountDisk /dev/diskX
-   
+
    # Write the ISO to USB
-   sudo dd if=ubuntu-22.04.3-live-server-amd64.iso of=/dev/rdiskX bs=1m
+   sudo dd if=ubuntu-24.04.3-live-server-amd64.iso of=/dev/rdiskX bs=1m
    ```
 
 2. **On Linux:**
+
    ```bash
    # Find your USB device
    lsblk
-   
+
    # Write the ISO to USB (replace sdX with your USB)
-   sudo dd if=ubuntu-22.04.3-live-server-amd64.iso of=/dev/sdX bs=4M status=progress
+   sudo dd if=ubuntu-24.04.3-live-server-amd64.iso of=/dev/sdX bs=4M status=progress
    ```
 
 ## Step 3: Plan Your Network Configuration
@@ -66,6 +81,7 @@ Internet → Router → Switch → [k8s-control, k8s-worker-1, k8s-worker-2]
 ```
 
 **Recommended IP Scheme:**
+
 - Router: 192.168.1.1 (typically default)
 - k8s-control (Lenovo): 192.168.1.10
 - k8s-worker-1 (Beelink #1): 192.168.1.11
@@ -73,6 +89,7 @@ Internet → Router → Switch → [k8s-control, k8s-worker-1, k8s-worker-2]
 - DNS: 8.8.8.8, 1.1.1.1
 
 **Why static IPs for Kubernetes?**
+
 - Kubernetes nodes need stable identities
 - Simplifies cluster configuration
 - Prevents connection issues after DHCP lease renewals
@@ -85,7 +102,7 @@ Before installing Ubuntu Server, configure each machine to automatically power o
 
 1. **Enter BIOS**: Boot the machine and press **F1** (or **F12**) repeatedly during startup
 2. **Navigate to Power settings**: Use arrow keys to find the "Power" section/tab
-3. **Find AC Recovery setting**: Look for "After Power Loss" or "AC Power Recovery" 
+3. **Find AC Recovery setting**: Look for "After Power Loss" or "AC Power Recovery"
 4. **Set to Auto-On**: Change the setting to "Power On" (not "Power Off" or "Last State")
 5. **Save and Exit**: Press **F10** to save changes and exit
 
@@ -112,6 +129,7 @@ Before installing Ubuntu Server, configure each machine to automatically power o
 **Language & Keyboard:** English (US)
 
 **Network Configuration:**
+
 - Select your ethernet interface
 - Choose "Manual" configuration
 - Configure static IP:
@@ -124,11 +142,13 @@ Before installing Ubuntu Server, configure each machine to automatically power o
   ```
 
 **Storage Configuration:**
+
 - Use entire disk
 - Set up LVM (recommended for flexibility)
 - No encryption (for learning purposes)
 
 **Profile Setup:**
+
 ```
 Your name: Kubernetes Admin
 Your server's name: k8s-control (or k8s-worker-1, k8s-worker-2)
@@ -137,6 +157,7 @@ Password: [choose a strong password]
 ```
 
 **SSH Setup:**
+
 - ✅ Install OpenSSH server
 - ✅ Import SSH identity: No (we'll set this up manually)
 
@@ -157,6 +178,66 @@ sudo apt install -y curl wget vim htop tree net-tools
 ip addr show
 ping -c 3 8.8.8.8
 ```
+
+### Configure Static IP (If Missed During Installation)
+
+If you used DHCP during installation, you can configure static IP addresses afterward:
+
+1. **Identify your network interface:**
+
+   ```bash
+   ip addr show
+   # Look for your ethernet interface (usually enp1s0, ens3, or similar)
+   ```
+
+2. **Edit the Netplan configuration:**
+
+   ```bash
+   # Find the netplan file
+   sudo ls /etc/netplan/
+
+   # Edit the configuration file (filename may vary)
+   sudo vim /etc/netplan/00-installer-config.yaml
+   ```
+
+3. **Configure static IP (replace `enp1s0` with your interface name):**
+
+   ```yaml
+   network:
+     version: 2
+     ethernets:
+       enp1s0: # Replace with your interface name
+         dhcp4: false
+         addresses:
+           - 192.168.1.10/24 # Adjust IP for each machine
+         routes:
+           - to: default
+             via: 192.168.1.1
+         nameservers:
+           addresses:
+             - 8.8.8.8
+             - 1.1.1.1
+   ```
+
+4. **Apply the configuration:**
+
+   ```bash
+   # Test the configuration first
+   sudo netplan try
+
+   # If successful, apply permanently
+   sudo netplan apply
+
+   # Verify the new configuration
+   ip addr show
+   ping -c 3 8.8.8.8
+   ```
+
+**Important:** Use these IP addresses:
+
+- k8s-control: 192.168.1.10
+- k8s-worker-1: 192.168.1.11
+- k8s-worker-2: 192.168.1.12
 
 ## Step 6: Configure SSH Key-Based Authentication
 
@@ -184,10 +265,11 @@ PubkeyAuthentication yes
 PermitRootLogin no
 
 # Restart SSH service
-sudo systemctl restart sshd
+sudo systemctl restart ssh
 ```
 
 **Test SSH access:**
+
 ```bash
 # From your main computer
 ssh k8sadmin@192.168.1.10
@@ -291,6 +373,8 @@ sudo vim /etc/hosts
 
 ## Step 9: Verification
 
+**Note**: Complete through step 8 on each PC before moving to this step
+
 **Test connectivity between nodes:**
 
 ```bash
@@ -323,16 +407,19 @@ sysctl net.ipv4.ip_forward
 ## Troubleshooting
 
 **Network Issues:**
+
 - Verify physical connections to switch
 - Check router DHCP range doesn't conflict with static IPs
 - Test with `ping` and `traceroute`
 
 **SSH Issues:**
+
 - Ensure SSH service is running: `sudo systemctl status sshd`
 - Check firewall rules: `sudo ufw status`
 - Verify SSH keys: `ssh -v k8sadmin@192.168.1.10`
 
 **Storage Issues:**
+
 - Check disk space: `df -h`
 - Verify LVM setup: `sudo lvdisplay`
 
@@ -347,6 +434,7 @@ With infrastructure foundation complete, you're ready for **Phase 2: Kubernetes 
 - ✅ Network connectivity verified between all nodes
 
 **Key Files Created:**
+
 - `/etc/hosts` - Node name resolution
 - `/etc/modules-load.d/k8s.conf` - Kernel modules for Kubernetes
 - `/etc/sysctl.d/k8s.conf` - Network configuration for Kubernetes
