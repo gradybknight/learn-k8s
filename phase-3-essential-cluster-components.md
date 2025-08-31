@@ -53,6 +53,8 @@ Before diving into components, let's understand Kubernetes storage concepts:
 
 ### Install metrics-server
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Download and install metrics-server
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -67,6 +69,8 @@ kubectl get pods -n kube-system | grep metrics-server
 ### Configure metrics-server for Local Cluster
 
 Since we're using self-signed certificates, we need to configure metrics-server to work with our setup:
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 # Edit metrics-server deployment to add insecure flags
@@ -90,6 +94,8 @@ kubectl rollout status deployment/metrics-server -n kube-system
 
 ### Test Metrics Server
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Wait a moment for metrics to be collected
 sleep 30
@@ -107,6 +113,8 @@ For learning purposes, we'll use local storage on each node. In production, you'
 
 ### Create StorageClass for Local Storage
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Create local storage class
 cat <<EOF | kubectl apply -f -
@@ -123,6 +131,8 @@ EOF
 
 ### Create Local Persistent Volumes
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Create directories on each worker node for local storage
 ssh k8sadmin@k8s-worker-1 'sudo mkdir -p /mnt/local-storage/pv1 /mnt/local-storage/pv2'
@@ -134,6 +144,8 @@ ssh k8sadmin@k8s-worker-2 'sudo chmod 755 /mnt/local-storage/pv*'
 ```
 
 ### Create Persistent Volumes
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 # Create PV for worker-1
@@ -241,6 +253,8 @@ We'll deploy PostgreSQL as a StatefulSet to demonstrate persistent storage and d
 
 ### Create Namespace for Database
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Create dedicated namespace
 kubectl create namespace database
@@ -250,6 +264,8 @@ kubectl config set-context --current --namespace=database
 ```
 
 ### Create ConfigMap for PostgreSQL Configuration
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -267,6 +283,8 @@ EOF
 ```
 
 ### Create PostgreSQL StatefulSet
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -339,6 +357,8 @@ EOF
 
 ### Create PostgreSQL Service
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -359,6 +379,8 @@ EOF
 
 ### Verify PostgreSQL Deployment
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Check StatefulSet status
 kubectl get statefulsets -n database
@@ -377,6 +399,8 @@ kubectl wait --for=condition=ready pod/postgres-0 -n database --timeout=300s
 ```
 
 ### Test Database Connection
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 # Connect to PostgreSQL pod
@@ -400,6 +424,8 @@ Kubernetes includes CoreDNS by default. Let's verify and test DNS resolution.
 
 ### Check CoreDNS Status
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Check CoreDNS pods
 kubectl get pods -n kube-system | grep coredns
@@ -409,6 +435,8 @@ kubectl get configmap coredns -n kube-system -o yaml
 ```
 
 ### Test DNS Resolution
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 # Create a test pod for DNS testing
@@ -421,6 +449,8 @@ kubectl run dns-test --image=busybox:1.28 --rm -it --restart=Never -- sh
 ```
 
 ### Create DNS Test Pod (Persistent)
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -453,6 +483,8 @@ kubectl exec dns-utils -- dig +short postgres-service.database.svc.cluster.local
 ## Step 5: Install and Configure Basic Logging
 
 ### Deploy Fluent Bit for Log Collection
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 # Create logging namespace
@@ -580,6 +612,8 @@ EOF
 
 ### Verify Logging Setup
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Check Fluent Bit pods
 kubectl get pods -n logging
@@ -591,6 +625,8 @@ kubectl logs -l name=fluent-bit -n logging --tail=50
 ## Step 6: Set Up Resource Quotas and Limits
 
 ### Create Resource Quota for Database Namespace
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -616,6 +652,8 @@ kubectl describe quota database-quota -n database
 
 ### Create LimitRange for Default Resource Limits
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -639,8 +677,9 @@ EOF
 
 ### Create Comprehensive Health Check Script
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
-# Run this script from your development machine where kubectl is configured
 # Create a health check script
 cat <<'EOF' > k8s-health-check.sh
 #!/bin/bash
@@ -689,6 +728,8 @@ chmod +x k8s-health-check.sh
 
 ### Test Database Persistence
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Create test data in PostgreSQL
 kubectl exec postgres-0 -n database -- psql -U appuser -d appdb -c "
@@ -717,6 +758,8 @@ kubectl exec postgres-0 -n database -- psql -U appuser -d appdb -c "SELECT * FRO
 
 ### Storage Issues
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Check PV and PVC status
 kubectl get pv,pvc -A
@@ -730,6 +773,8 @@ kubectl describe pvc -n database
 
 ### Database Issues
 
+**Run from Control Plane Node (k8s-master):**
+
 ```bash
 # Check PostgreSQL logs
 kubectl logs postgres-0 -n database
@@ -742,6 +787,8 @@ kubectl get endpoints -n database
 ```
 
 ### Metrics Server Issues
+
+**Run from Control Plane Node (k8s-master):**
 
 ```bash
 # Check metrics-server logs
