@@ -1,6 +1,7 @@
 # Phase 2: Kubernetes Cluster Setup
 
 ## Learning Objectives
+
 - Install container runtime (containerd)
 - Install Kubernetes components (kubeadm, kubelet, kubectl)
 - Initialize Kubernetes control plane
@@ -9,6 +10,7 @@
 - Verify cluster functionality
 
 ## Prerequisites
+
 - Completed Phase 1: Infrastructure Foundation
 - All three nodes accessible via SSH
 - Static IP addresses configured
@@ -49,6 +51,7 @@ Before installation, let's understand what we're building:
 ## Step 1: Install Container Runtime (All Nodes)
 
 **Why containerd?**
+
 - Default runtime for Kubernetes 1.24+
 - Lighter weight than Docker
 - CRI (Container Runtime Interface) compliant
@@ -135,6 +138,7 @@ sudo systemctl enable kubelet
 ```
 
 **Why hold packages?**
+
 - Prevents automatic updates that could break cluster compatibility
 - Allows controlled cluster upgrades
 - Ensures all nodes run same Kubernetes version
@@ -182,6 +186,7 @@ EOF
 ```
 
 **Configuration Explanation:**
+
 - `controlPlaneEndpoint`: DNS name for API server (enables HA later)
 - `serviceSubnet`: Internal cluster service network
 - `podSubnet`: Network for pod-to-pod communication
@@ -216,6 +221,7 @@ You should see the control plane node in "NotReady" state - this is expected bef
 ## Step 4: Install Container Network Interface (CNI)
 
 **Why do we need CNI?**
+
 - Kubernetes doesn't provide networking by default
 - CNI plugin handles pod-to-pod communication
 - Required for nodes to be "Ready"
@@ -229,18 +235,11 @@ You should see the control plane node in "NotReady" state - this is expected bef
 kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 
 # Wait for Flannel pods to be ready
-kubectl wait --for=condition=ready pod -l app=flannel -n kube-flannel-system --timeout=300s
+kubectl wait --for=condition=ready pod -l app=flannel -n kube-flannel --timeout=300s
 
 # Verify CNI installation
-kubectl get pods -n kube-flannel-system
+kubectl get pods -n kube-flannel
 kubectl get nodes
-```
-
-**Alternative: Calico CNI (optional)**
-```bash
-# If you prefer Calico over Flannel
-# kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.0/manifests/tigera-operator.yaml
-# kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.0/manifests/custom-resources.yaml
 ```
 
 ## Step 5: Configure Firewall for Kubernetes
@@ -408,27 +407,30 @@ sudo cat /etc/kubernetes/admin.conf
 ### Common Issues
 
 **Nodes stuck in NotReady state:**
+
 ```bash
 # Check kubelet logs
 sudo journalctl -xeu kubelet
 
 # Check CNI installation
-kubectl get pods -n kube-flannel-system
+kubectl get pods -n kube-flannel
 
 # Restart kubelet if needed
 sudo systemctl restart kubelet
 ```
 
 **Pod networking issues:**
+
 ```bash
 # Check Flannel daemonset
-kubectl describe ds kube-flannel-ds -n kube-flannel-system
+kubectl describe ds kube-flannel-ds -n kube-flannel
 
 # Check CNI configuration
 sudo ls -la /etc/cni/net.d/
 ```
 
 **Control plane components not starting:**
+
 ```bash
 # Check static pod manifests
 sudo ls -la /etc/kubernetes/manifests/
@@ -452,6 +454,7 @@ sudo systemctl restart kubelet containerd
 ### RBAC is Enabled by Default
 
 Kubernetes 1.28+ has Role-Based Access Control (RBAC) enabled by default, which means:
+
 - Service accounts have minimal permissions
 - Custom roles needed for applications
 - Admin access requires explicit configuration
@@ -459,6 +462,7 @@ Kubernetes 1.28+ has Role-Based Access Control (RBAC) enabled by default, which 
 ### Network Policies (Future)
 
 Once you understand basic Kubernetes operations, consider implementing:
+
 - Network policies to control pod-to-pod communication
 - Pod security policies/standards
 - Resource quotas and limits
@@ -475,6 +479,7 @@ With your Kubernetes cluster running, you're ready for **Phase 3: Essential Clus
 - ✅ Basic pod deployment and communication tested
 
 **Key Commands for Daily Use:**
+
 ```bash
 # Check cluster status
 kubectl get nodes
@@ -488,6 +493,7 @@ kubectl top nodes  # requires metrics-server (Phase 3)
 ```
 
 **Important Files Created:**
+
 - `/etc/kubernetes/admin.conf` - Cluster admin credentials
 - `/etc/kubernetes/kubeadm-config.yaml` - Cluster configuration
 - `~/.kube/config` - kubectl configuration
