@@ -77,7 +77,31 @@ Internet → Router → Switch → [k8s-control, k8s-worker-1, k8s-worker-2]
 - Simplifies cluster configuration
 - Prevents connection issues after DHCP lease renewals
 
-## Step 4: Install Ubuntu Server (Repeat for Each Machine)
+## Step 4: Configure Auto Power-On (Optional but Recommended)
+
+Before installing Ubuntu Server, configure each machine to automatically power on after power loss. This prevents needing to physically press power buttons after power outages.
+
+### Lenovo ThinkCentre M720Q
+
+1. **Enter BIOS**: Boot the machine and press **F1** (or **F12**) repeatedly during startup
+2. **Navigate to Power settings**: Use arrow keys to find the "Power" section/tab
+3. **Find AC Recovery setting**: Look for "After Power Loss" or "AC Power Recovery" 
+4. **Set to Auto-On**: Change the setting to "Power On" (not "Power Off" or "Last State")
+5. **Save and Exit**: Press **F10** to save changes and exit
+
+### Beelink Mini S12 Pro
+
+**Note**: The S12 Pro may not support this feature in BIOS.
+
+1. **Enter BIOS**: Boot the machine and press **Delete** repeatedly during startup
+2. **Check Boot section**: Navigate to "Boot" menu and look for "Auto Power On" or "Power On Type"
+3. **Check Advanced/Power sections**: If not in Boot, try "Advanced" or "Power Management" sections
+4. **Enable if found**: Set to "Auto Power On" or "Enabled"
+5. **Save**: Press **F4** or **F10** to save changes
+
+**Alternative**: If BIOS doesn't support auto power-on, consider using smart power strips with remote control.
+
+## Step 5: Install Ubuntu Server (Repeat for Each Machine)
 
 ### Boot from USB and Basic Setup
 
@@ -134,7 +158,7 @@ ip addr show
 ping -c 3 8.8.8.8
 ```
 
-## Step 5: Configure SSH Key-Based Authentication
+## Step 6: Configure SSH Key-Based Authentication
 
 **On your main computer (one-time setup):**
 
@@ -169,7 +193,7 @@ sudo systemctl restart sshd
 ssh k8sadmin@192.168.1.10
 ```
 
-## Step 6: Basic Security Hardening
+## Step 7: Basic Security Hardening
 
 **Configure firewall (UFW):**
 
@@ -212,7 +236,7 @@ sudo vim /etc/security/limits.conf
 * hard nproc 32768
 ```
 
-## Step 7: Prepare for Kubernetes
+## Step 8: Prepare for Kubernetes
 
 **Disable swap (required for Kubernetes):**
 
@@ -265,7 +289,7 @@ sudo vim /etc/hosts
 192.168.1.12    k8s-worker-2
 ```
 
-## Step 8: Verification
+## Step 9: Verification
 
 **Test connectivity between nodes:**
 
