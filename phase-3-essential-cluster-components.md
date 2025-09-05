@@ -74,19 +74,7 @@ Since we're using self-signed certificates, we need to configure metrics-server 
 
 ```bash
 # Edit metrics-server deployment to add insecure flags
-kubectl patch deployment metrics-server -n kube-system --patch='
-spec:
-  template:
-    spec:
-      containers:
-      - name: metrics-server
-        args:
-        - --cert-dir=/tmp
-        - --secure-port=4443
-        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-        - --kubelet-use-node-status-port
-        - --metric-resolution=15s
-        - --kubelet-insecure-tls'
+kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--kubelet-insecure-tls"}]'
 
 # Wait for rollout to complete
 kubectl rollout status deployment/metrics-server -n kube-system
@@ -407,10 +395,15 @@ kubectl wait --for=condition=ready pod/postgres-0 -n database --timeout=300s
 kubectl exec -it postgres-0 -n database -- psql -U appuser -d appdb
 
 # Inside PostgreSQL shell, create a test table:
-# CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(50));
-# INSERT INTO test_table (name) VALUES ('test-data');
-# SELECT * FROM test_table;
-# \q
+```
+CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(50));
+
+INSERT INTO test_table (name) VALUES ('test-data');
+
+SELECT * FROM test_table;
+
+\q
+```
 
 # Or test connection from outside the pod
 kubectl run postgres-client --rm -i --tty --image postgres:15 -- bash
@@ -439,13 +432,15 @@ kubectl get configmap coredns -n kube-system -o yaml
 **Run from Control Plane Node (k8s-master):**
 
 ```bash
-# Create a test pod for DNS testing
+# Create a test pod for DNS testing (this will automatically connect you to the pod's shell)
 kubectl run dns-test --image=busybox:1.28 --rm -it --restart=Never -- sh
 
-# Inside the pod, test DNS resolution:
-# nslookup kubernetes.default.svc.cluster.local
-# nslookup postgres-service.database.svc.cluster.local
-# exit
+# You are now inside the pod's shell. Test DNS resolution:
+nslookup kubernetes.default.svc.cluster.local
+nslookup postgres-service.database.svc.cluster.local
+
+# Exit the pod (this will also delete it due to --rm flag)
+exit
 ```
 
 ### Create DNS Test Pod (Persistent)
